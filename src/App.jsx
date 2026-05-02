@@ -3,9 +3,9 @@ import { useState, useEffect } from "react";
 // Deployed Apps Script Web App URL for the signatures sheet
 const SIGNATURES_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxrFBOzqIsYhMaxPorEcXvSkPZYnaUuvvHC7IFJIuIj-6MTgAJbpPqaOFGzQ6egv3mL0A/exec";
 
-// Background-check upload Apps Script + provider link (replace placeholders)
-const FILE_UPLOADS_APPS_SCRIPT_URL = "REPLACE_ME_FILE_UPLOADS_APPS_SCRIPT_URL";
-const BACKGROUND_CHECK_PROVIDER_URL = "REPLACE_ME_BACKGROUND_CHECK_PROVIDER_URL";
+// Background-check upload Apps Script + provider link
+const FILE_UPLOADS_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzQPQ-6IiYoxzeXRC2_hZHKSze_2AGFiSCAi_tpvEVfimaQVGA1ypU35l5TrF5lUMDUFw/exec";
+const BACKGROUND_CHECK_PROVIDER_URL = "https://www.fdle.state.fl.us/criminal-history-records/florida-checks";
 
 // ── URL routing (no router lib) ──
 function useUrlPath() {
@@ -855,7 +855,10 @@ function BackgroundCheckPage() {
       <div style={styles.sectionLabel}>Step 1 · Take the Background Check</div>
       <div style={styles.payrollCard}>
         <p style={styles.payrollText}>
-          Complete your annual background check through A3's approved provider. When you reach the result page, <strong>do not close it</strong> — you'll need to capture it for upload in Step 3.
+          A3 uses the Florida Department of Law Enforcement (FDLE) for annual background checks. On the FDLE site, please select <strong>Instant Search</strong>. The cost is usually around <strong>$24</strong>.
+        </p>
+        <p style={styles.payrollText}>
+          When you reach the result page, <strong>do not close it</strong> — you'll need to capture it for upload in Step 3.
         </p>
         <a
           href={BACKGROUND_CHECK_PROVIDER_URL}
@@ -863,7 +866,7 @@ function BackgroundCheckPage() {
           rel="noopener noreferrer"
           style={styles.providerBtn}
         >
-          Open Background Check Provider →
+          Open FDLE Background Check →
         </a>
       </div>
 
