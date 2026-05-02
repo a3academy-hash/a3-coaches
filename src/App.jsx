@@ -53,16 +53,11 @@ const PORTAL_SECTIONS = [
     status: "active",
   },
   {
-    id: "w9",
-    title: "W-9 / Tax Forms",
-    description: "Submit and update your W-9 and other onboarding tax paperwork.",
-    status: "coming-soon",
-  },
-  {
-    id: "onboarding",
-    title: "Onboarding",
-    description: "First-day orientation, facility tour, payroll setup, and program overview.",
-    status: "coming-soon",
+    id: "payroll",
+    title: "Payroll & Onboarding",
+    description: "Independent contractor status, W-9, pay schedule, Zelle setup, reimbursements, travel, and the full missed-days + fines mechanics.",
+    href: "/payroll",
+    status: "active",
   },
 ];
 
@@ -71,13 +66,13 @@ const RULES = [
   {
     id: "attendance",
     title: "Attendance",
-    summary: "Attend every scheduled session. Communicate absences to leadership 24+ hours in advance unless emergency.",
+    summary: "Show up on time. Communicate absences to your campus director or head coach as early as possible. No-shows are taken seriously.",
     policy:
-      "Coaches are expected at every scheduled session — practices, games, hitting sessions, small group work, fundraisers, and travel trips. Absences must be communicated to leadership at least 24 hours in advance unless it is a true emergency. Showing up is the foundation of every other rule on this page.",
+      "Coaches are expected at every scheduled session — practices, games, hitting sessions, small group work, fundraisers, and travel trips. Absences must be communicated to your campus director or head coach as far in advance as possible. A3 distinguishes between excused absences (illness, family emergencies, pre-approved time off) and no-shows (no notice or approval). Excused absences are understood, but pay docking for replacement coverage may still apply if absences become a pattern — see Payroll & Onboarding for the full pay mechanics. The consequences below cover no-shows and unexcused absences.",
     consequences: [
-      { offense: "1st", action: "Documented warning. Same-day pay deducted." },
-      { offense: "2nd", action: "Formal meeting with leadership. Suspension from the next training block." },
-      { offense: "3rd", action: "Dismissal from staff." },
+      { offense: "1st", action: "Immediate pay docking for the missed day. Documented warning. Possible fine under the conduct policy." },
+      { offense: "2nd", action: "Formal meeting with leadership. Additional fine. Suspension from the next scheduled block." },
+      { offense: "3rd", action: "Removal from staff." },
     ],
   },
   {
@@ -627,6 +622,149 @@ function SignPage() {
   );
 }
 
+// ── Page: Payroll & Onboarding ──
+const PAYROLL_SECTIONS = [
+  { id: "contractor", title: "Independent Contractor Status" },
+  { id: "pay-schedule", title: "Pay Schedule" },
+  { id: "payment-methods", title: "Payment Methods" },
+  { id: "reimbursements", title: "Reimbursements" },
+  { id: "travel", title: "Travel & Road Trips" },
+  { id: "missed-days", title: "Missed Days & Coverage" },
+  { id: "fines", title: "Fines & Withholdings" },
+];
+
+function PayrollPage() {
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <>
+      <button style={styles.backLink} onClick={() => navigate("/")}>← Coaches Portal</button>
+
+      <div style={styles.heroSection}>
+        <div style={styles.heroOverlay}>
+          <div style={styles.heroEyebrow}>STAFF RESOURCES</div>
+          <div style={styles.heroTagline}>Payroll &amp; Onboarding</div>
+          <div style={styles.heroLead}>
+            How A3 pays its coaches, what to expect on the schedule, and what to know about taxes, travel, and missed days.
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.sectionLabel}>Jump To</div>
+      <div style={styles.tocCard}>
+        {PAYROLL_SECTIONS.map((s) => (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            style={styles.tocLink}
+            onClick={(e) => { e.preventDefault(); scrollTo(s.id); }}
+          >
+            {s.title}
+          </a>
+        ))}
+      </div>
+
+      {/* Independent Contractor */}
+      <div id="contractor" style={styles.payrollCard}>
+        <div style={styles.payrollTitle}>Independent Contractor Status</div>
+        <p style={styles.payrollText}>
+          All A3 Academy coaches are engaged as <strong>independent contractors, not employees</strong>. As a condition of being onboarded, each coach must complete and submit a <strong>Form W-9</strong> prior to their first payment. A3 Academy will issue a <strong>Form 1099</strong> by January 31 each year to every coach who meets the IRS reporting threshold for the prior calendar year.
+        </p>
+        <p style={styles.payrollText}>
+          Because coaches are independent contractors, <strong>no taxes are withheld</strong> from any payment. Each coach is solely responsible for estimating, reporting, and paying their own federal, state, and self-employment taxes throughout the year. Coaches should consult a tax professional with any questions about their personal tax obligations.
+        </p>
+      </div>
+
+      {/* Pay Schedule */}
+      <div id="pay-schedule" style={styles.payrollCard}>
+        <div style={styles.payrollTitle}>Pay Schedule</div>
+        <p style={styles.payrollText}>
+          Coaches are paid <strong>twice per month, on or around the 1st and the 15th</strong>, give or take a day if either date falls on a Sunday. All pay is issued <strong>in arrears</strong> — each payment covers work that was completed during the prior pay period. A3 Academy does not pay in advance under any circumstances.
+        </p>
+        <div style={styles.payrollCallout}>
+          <strong>Missing a payment?</strong> Contact A3 Academy immediately. Our automated billing schedule may have expired on our end, and we'll need to re-establish it to release your payment.
+        </div>
+      </div>
+
+      {/* Payment Methods */}
+      <div id="payment-methods" style={styles.payrollCard}>
+        <div style={styles.payrollTitle}>Payment Methods</div>
+        <p style={styles.payrollText}>
+          A3 Academy issues all coach payments electronically. The standard method is <strong>Zelle</strong>, and every coach is required to enroll in Zelle using the email address or phone number tied to their bank account in order to receive payments.
+        </p>
+        <p style={styles.payrollText}>
+          In rare cases where Zelle is unavailable, A3 may issue payment via <strong>Venmo</strong> as a backup option. <strong>No other payment methods (check, cash, direct deposit, etc.) are offered.</strong>
+        </p>
+      </div>
+
+      {/* Reimbursements */}
+      <div id="reimbursements" style={styles.payrollCard}>
+        <div style={styles.payrollTitle}>Reimbursements</div>
+        <p style={styles.payrollText}>
+          If a coach incurs an approved out-of-pocket expense on behalf of A3 Academy, reimbursement will be issued through the <strong>same channel as payroll</strong> (Zelle, or Venmo in rare cases). Reimbursable expenses must be pre-approved or fall within standard team operations, and coaches should <strong>retain receipts</strong> for any expense they intend to submit.
+        </p>
+      </div>
+
+      {/* Travel */}
+      <div id="travel" style={styles.payrollCard}>
+        <div style={styles.payrollTitle}>Travel &amp; Road Trips</div>
+        <p style={styles.payrollText}>
+          A3 Academy provides <strong>lodging</strong> for coaches on all road trips that require an overnight stay. Coaches do not pay for hotel rooms out of pocket.
+        </p>
+        <p style={styles.payrollText}>
+          For transportation, A3 typically provides <strong>charter bus service</strong> to and from road trip destinations. Coaches are expected to travel with the team on the provided transportation.
+        </p>
+        <div style={styles.payrollCallout}>
+          <strong>Personal vehicles:</strong> If a coach chooses to drive personally instead of using the charter bus, their fuel and travel costs are <strong>not reimbursable</strong> — by opting out of the provided transportation, the coach assumes full responsibility for their own travel expenses. Mileage and fuel are only reimbursable when A3 is not providing team transportation for that trip.
+        </div>
+      </div>
+
+      {/* Missed Days */}
+      <div id="missed-days" style={styles.payrollCard}>
+        <div style={styles.payrollTitle}>Missed Days &amp; Coverage</div>
+        <p style={styles.payrollText}>
+          <strong>Pay is docked for missed days.</strong> When a coach is unable to work a scheduled session, practice, or game, another coach must be brought in to cover that slot — and that replacement coach must be compensated. As a result, the absent coach's pay will be reduced accordingly for the days they did not work.
+        </p>
+        <p style={styles.payrollText}>
+          A3 Academy distinguishes between two types of absences:
+        </p>
+
+        <div style={styles.absenceCard}>
+          <div style={styles.absenceLabel}>EXCUSED ABSENCES</div>
+          <div style={styles.absenceText}>
+            Illness, family emergencies, pre-approved time off, and similar legitimate reasons are considered excused. Occasional excused absences are understood and accepted — life happens. However, A3 still has to pay a replacement coach to cover the slot, so <strong>frequent excused absences will result in pay being docked to fund that coverage</strong>. An excused absence protects your standing as a coach, but it does not automatically protect your paycheck once absences become a pattern.
+          </div>
+        </div>
+
+        <div style={{ ...styles.absenceCard, borderLeftColor: colors.danger }}>
+          <div style={{ ...styles.absenceLabel, color: colors.danger }}>NO-SHOWS / UNEXCUSED ABSENCES</div>
+          <div style={styles.absenceText}>
+            Failing to show up for a scheduled commitment without prior notice or approval is treated far more seriously. <strong>No-shows result in immediate pay docking for the missed day plus possible fines under the personal conduct policy</strong>, and repeated no-shows may result in removal from the staff.
+          </div>
+        </div>
+
+        <div style={styles.payrollCallout}>
+          Coaches are expected to communicate absences to their campus director or head coach as far in advance as possible. <strong>The earlier the notice, the easier it is to arrange coverage</strong> — and the smaller the impact on the team and on your pay.
+        </div>
+      </div>
+
+      {/* Fines */}
+      <div id="fines" style={styles.payrollCard}>
+        <div style={styles.payrollTitle}>Fines &amp; Withholdings</div>
+        <p style={styles.payrollText}>
+          A3 Academy maintains a <a href="/rules" onClick={(e) => { e.preventDefault(); navigate("/rules"); }} style={styles.inlineLink}>personal conduct policy</a> with associated fines for violations (e.g., late arrival to a field, dress code, professionalism, etc.). When a fine is issued, the amount will be <strong>deducted from the coach's next scheduled payment</strong>.
+        </p>
+        <p style={styles.payrollText}>
+          For example, if a coach receives a <strong>$50 fine</strong> for arriving late to a field, their next paycheck will be reduced by $50. The same applies to fines of any amount ($100, $200, etc.). Coaches will be notified of any fine and the corresponding deduction <strong>prior to the affected pay period</strong>.
+        </p>
+      </div>
+    </>
+  );
+}
+
 // ── App ──
 export default function App() {
   const path = useUrlPath();
@@ -636,6 +774,8 @@ export default function App() {
     page = <SignPage />;
   } else if (path === "/rules" || path.startsWith("/rules/")) {
     page = <RulesPage />;
+  } else if (path === "/payroll" || path.startsWith("/payroll/")) {
+    page = <PayrollPage />;
   } else {
     page = <HomePage />;
   }
@@ -1293,6 +1433,61 @@ const styles = {
   },
   successText: {
     fontSize: 14,
+    color: colors.text,
+    lineHeight: 1.6,
+  },
+
+  // Payroll page
+  payrollCard: {
+    background: colors.card,
+    border: `1px solid ${colors.cardBorder}`,
+    borderRadius: 12,
+    padding: "24px 24px 18px",
+    marginBottom: 18,
+    scrollMarginTop: 16,
+  },
+  payrollTitle: {
+    fontSize: 22,
+    fontWeight: 800,
+    color: colors.text,
+    marginBottom: 14,
+    lineHeight: 1.2,
+  },
+  payrollText: {
+    fontSize: 14.5,
+    color: colors.text,
+    lineHeight: 1.7,
+    marginBottom: 14,
+  },
+  payrollCallout: {
+    background: colors.accentGlow,
+    border: `1px solid ${colors.accent}55`,
+    borderRadius: 8,
+    padding: "12px 16px",
+    fontSize: 13.5,
+    color: colors.text,
+    lineHeight: 1.6,
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  absenceCard: {
+    background: colors.input,
+    border: `1px solid ${colors.cardBorder}`,
+    borderLeft: `3px solid ${colors.accent}`,
+    borderRadius: 8,
+    padding: "14px 16px",
+    marginBottom: 12,
+  },
+  absenceLabel: {
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: 1.5,
+    color: colors.accentSoft,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  absenceText: {
+    fontSize: 13.5,
     color: colors.text,
     lineHeight: 1.6,
   },
