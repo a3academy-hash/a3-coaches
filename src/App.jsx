@@ -265,7 +265,13 @@ function Footer() {
 function HomePage() {
   return (
     <>
-      <div style={styles.heroSection}>
+      <div style={{
+        ...styles.heroSection,
+        minHeight: 320,
+        backgroundImage: "linear-gradient(180deg, rgba(5,10,20,0.45) 0%, rgba(13,37,82,0.88) 100%), url(/pics/coaches.jpg)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}>
         <div style={styles.heroOverlay}>
           <div style={styles.heroEyebrow}>STAFF RESOURCES</div>
           <div style={styles.heroTagline}>Coaches Portal</div>
