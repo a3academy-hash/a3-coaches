@@ -29,17 +29,28 @@ function navigate(href) {
 }
 
 // ── Portal sections (home page) ──
+// Layout: rows 1 + 2 are 2-up; row 3 (payroll) spans full width via fullWidth flag.
 const PORTAL_SECTIONS = [
   {
     id: "rules",
     title: "Conduct, Rules & Policies",
+    icon: "book",
     description: "Read A3's coaches personal conduct policy, rules, and the consequences for 1st, 2nd, and 3rd offenses.",
     href: "/rules",
     status: "active",
   },
   {
+    id: "signature",
+    title: "Conduct Policy Signature",
+    icon: "pen",
+    description: "Sign and acknowledge the A3 Coaches Personal Conduct Policy on the record. Reviewed quarterly.",
+    href: "/sign",
+    status: "active",
+  },
+  {
     id: "background",
     title: "Background Checks",
+    icon: "magnifier",
     description: "Take your annual FDLE background check and upload the result page (Passed/Failed + Name + Date).",
     href: "/background",
     status: "active",
@@ -47,25 +58,58 @@ const PORTAL_SECTIONS = [
   {
     id: "certifications",
     title: "Certifications",
+    icon: "cap",
     description: "Annual concussion and heat illness certifications — upload your completion screenshot or certificate.",
     href: "/certifications",
     status: "active",
   },
   {
-    id: "signature",
-    title: "Conduct Policy Signature",
-    description: "Sign and acknowledge the A3 Coaches Personal Conduct Policy on the record. Reviewed quarterly.",
-    href: "/sign",
-    status: "active",
-  },
-  {
     id: "payroll",
     title: "Payroll & Onboarding",
+    icon: "dollar",
     description: "Independent contractor status, W-9, pay schedule, Zelle setup, reimbursements, travel, and the full missed-days + fines mechanics.",
     href: "/payroll",
     status: "active",
+    fullWidth: true,
   },
 ];
+
+// ── Icons (inline SVG, currentColor stroke) ──
+const ICONS = {
+  book: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  ),
+  pen: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 19l7-7 3 3-7 7-3-3z" />
+      <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+      <path d="M2 2l7.586 7.586" />
+      <circle cx="11" cy="11" r="2" />
+    </svg>
+  ),
+  magnifier: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  cap: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 10v6" />
+      <path d="M2 10l10-5 10 5-10 5z" />
+      <path d="M6 12v5c3 3 9 3 12 0v-5" />
+    </svg>
+  ),
+  dollar: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  ),
+};
 
 // ── Rules data (12 categories) ──
 const RULES = [
@@ -291,11 +335,15 @@ function HomePage() {
               style={{
                 ...styles.portalCard,
                 ...(isActive ? styles.portalCardActive : styles.portalCardInactive),
+                ...(s.fullWidth ? { gridColumn: "1 / -1" } : {}),
               }}
               onClick={() => isActive && navigate(s.href)}
               role={isActive ? "button" : undefined}
               tabIndex={isActive ? 0 : undefined}
             >
+              {s.icon && (
+                <div style={styles.portalCardIcon}>{ICONS[s.icon]}</div>
+              )}
               <div style={styles.portalCardHeader}>
                 <div style={styles.portalCardTitle}>{s.title}</div>
                 {isActive ? (
@@ -1267,7 +1315,7 @@ const styles = {
   // Portal cards (home)
   portalGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
     gap: 14,
     marginBottom: 32,
   },
@@ -1277,6 +1325,13 @@ const styles = {
     borderRadius: 12,
     padding: "20px 22px",
     transition: "border-color 0.15s, transform 0.15s",
+  },
+  portalCardIcon: {
+    color: colors.accent,
+    marginBottom: 14,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-start",
   },
   portalCardActive: {
     cursor: "pointer",
