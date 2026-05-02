@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
-// Replace with deployed Apps Script Web App URL for the signatures sheet
-const SIGNATURES_SHEETS_URL = "REPLACE_ME_SIGNATURES_APPS_SCRIPT_URL";
+// Deployed Apps Script Web App URL for the signatures sheet
+const SIGNATURES_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxrFBOzqIsYhMaxPorEcXvSkPZYnaUuvvHC7IFJIuIj-6MTgAJbpPqaOFGzQ6egv3mL0A/exec";
 
 // ── URL routing (no router lib) ──
 function useUrlPath() {
