@@ -1235,7 +1235,7 @@ function IntakePage() {
     currentAddress: "",
     drivingIssues: "", drivingExplanation: "",
     priorIssues: {}, priorIssuesExplanation: "",
-    socialHandles: "", socialMediaConsent: false,
+    socialMediaConsent: false,
     sg_no1on1: false, sg_noClosedDoor: false, sg_noDiscipline: false, sg_mandatoryReporting: false,
     da_noDrugsAlcohol: false, da_noImpairment: false, da_subjectToRemoval: false,
     bpRating: "", fungoRating: "",
@@ -1322,7 +1322,6 @@ function IntakePage() {
           DISCLOSURE_QUESTIONS.map((q) => [`disclosure_${q.id}`, form.priorIssues[q.id] || ""])
         ),
         priorIssuesExplanation: form.priorIssuesExplanation || "",
-        socialHandles: form.socialHandles,
         socialMediaConsent: form.socialMediaConsent ? "Yes" : "No",
         safeguarding_no1on1: form.sg_no1on1 ? "Yes" : "No",
         safeguarding_noClosedDoor: form.sg_noClosedDoor ? "Yes" : "No",
@@ -1450,7 +1449,7 @@ function IntakePage() {
       <div style={styles.sectionLabel}>2 · Prior Issues / Disclosure</div>
       <div style={styles.formCard}>
         <p style={styles.payrollText}>
-          Honesty up front protects you and protects A3. Any "Yes" requires explanation below.
+          Honesty up front protects you and protects A3. Any "Yes" requires an explanation. Even if you answered "No" to everything, you may use the explanation below to add context for anything deep in your past, minor, or already resolved.
         </p>
         {DISCLOSURE_QUESTIONS.map((q) => (
           <div key={q.id} style={styles.fieldGroup}>
@@ -1468,29 +1467,33 @@ function IntakePage() {
             </div>
           </div>
         ))}
-        {anyDisclosureYes && (
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Explanation for any "Yes" answers above <span style={styles.req}>*</span></label>
-            <textarea style={{ ...styles.input, fontFamily: font, minHeight: 100 }} value={form.priorIssuesExplanation} onChange={(e) => set("priorIssuesExplanation")(e.target.value)} required />
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>
+            Explanation or context {anyDisclosureYes && <span style={styles.req}>*</span>}
+          </label>
+          <textarea
+            style={{ ...styles.input, fontFamily: font, minHeight: 110 }}
+            value={form.priorIssuesExplanation}
+            onChange={(e) => set("priorIssuesExplanation")(e.target.value)}
+            placeholder={anyDisclosureYes
+              ? "Explain any 'Yes' answers above — what happened, when, current status, etc."
+              : "Optional. Use this to add context for any answer above — e.g., 'minor misdemeanor 18 years ago, sealed' or 'one speeding ticket in 2009.'"}
+            required={anyDisclosureYes}
+          />
+          <div style={styles.hint}>
+            {anyDisclosureYes
+              ? "Required because you answered 'Yes' to at least one question above."
+              : "Not required. Add context if you'd like A3 to understand background that doesn't quite fit the Yes/No format."}
           </div>
-        )}
+        </div>
       </div>
 
       {/* 3. Social Media */}
       <div style={styles.sectionLabel}>3 · Social Media Review Disclosure</div>
       <div style={styles.formCard}>
         <p style={styles.payrollText}>
-          A3 manually reviews coach social media for behavior, language, political/extreme content, and how you interact with kids and players. List every active handle.
+          A3 manually reviews coach social media for behavior, language, political/extreme content, and how you interact with kids and players. By acknowledging below, you understand this review is ongoing throughout your time on staff.
         </p>
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>Social Media Handles</label>
-          <textarea
-            style={{ ...styles.input, fontFamily: font, minHeight: 90 }}
-            value={form.socialHandles}
-            onChange={(e) => set("socialHandles")(e.target.value)}
-            placeholder={"Instagram: @yourhandle\nX/Twitter: @yourhandle\nTikTok: @yourhandle\nFacebook: full name + URL\nLinkedIn: URL"}
-          />
-        </div>
         <div style={styles.checkRow} onClick={() => set("socialMediaConsent")(!form.socialMediaConsent)}>
           <div style={{ ...styles.checkbox, ...(form.socialMediaConsent ? styles.checkboxChecked : {}) }}>
             {form.socialMediaConsent && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
