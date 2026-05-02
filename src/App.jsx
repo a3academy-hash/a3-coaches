@@ -40,15 +40,16 @@ const PORTAL_SECTIONS = [
   {
     id: "background",
     title: "Background Checks",
-    description: "Take your annual background check and upload the result page (Passed/Failed + Name + Date).",
+    description: "Take your annual FDLE background check and upload the result page (Passed/Failed + Name + Date).",
     href: "/background",
     status: "active",
   },
   {
     id: "certifications",
     title: "Certifications",
-    description: "Coaching, first aid, and concussion certifications — upload, view, and renew.",
-    status: "coming-soon",
+    description: "Annual concussion and heat illness certifications — upload your completion screenshot or certificate.",
+    href: "/certifications",
+    status: "active",
   },
   {
     id: "signature",
@@ -770,7 +771,94 @@ function PayrollPage() {
   );
 }
 
-// ── Page: Background Checks ──
+// ── Upload type configs ──
+// step1 + requirementsCallout are thunks (functions returning JSX) so the
+// `styles` reference inside them is evaluated lazily at render time, not
+// during module load (avoids TDZ since styles is defined further down).
+const UPLOAD_TYPES = {
+  "background-check": {
+    title: "Background Check",
+    eyebrow: "STAFF RESOURCES",
+    leadCopy: "Required annually per A3 policy and the municipalities A3 works with.",
+    category: "Background Check",
+    provider: {
+      url: BACKGROUND_CHECK_PROVIDER_URL,
+      label: "Open FDLE Background Check →",
+      step1: () => (
+        <>
+          <p style={styles.payrollText}>
+            A3 uses the Florida Department of Law Enforcement (FDLE) for annual background checks. On the FDLE site, please select <strong>Instant Search</strong>. The cost is usually around <strong>$24</strong>.
+          </p>
+          <p style={styles.payrollText}>
+            When you reach the result page, <strong>do not close it</strong> — you'll need to capture it for upload in Step 3.
+          </p>
+        </>
+      ),
+    },
+    requirements: ["RESULT — Passed or Failed", "NAME — your full legal name", "DATE — the date the result was issued"],
+    requirementsCallout: () => (
+      <><strong>A receipt of payment is not enough.</strong> A3 needs to see the actual result with your name and the date clearly visible — not just proof that you paid for the check.</>
+    ),
+    uploadLabel: "Background Check Result (image or PDF)",
+    submitLabel: "Upload Background Check",
+    successLabel: "Background Check Uploaded",
+  },
+  concussion: {
+    title: "Concussion Certification",
+    eyebrow: "STAFF RESOURCES · CERTIFICATION",
+    leadCopy: "Annual NFHS Concussion in Sports certification. Free online course, takes about 30 minutes.",
+    category: "Concussion Certification",
+    provider: {
+      url: "https://nfhslearn.com/courses/concussion-in-sports-2",
+      label: "Open NFHS Concussion Course →",
+      step1: () => (
+        <>
+          <p style={styles.payrollText}>
+            Take the <strong>"Concussion in Sports"</strong> course on the NFHS Learning Center. The course is free, takes about 30 minutes, and ends with a certificate of completion.
+          </p>
+          <p style={styles.payrollText}>
+            When the certificate appears, <strong>save it as a PDF</strong> or take a screenshot. You'll upload it in Step 3.
+          </p>
+        </>
+      ),
+    },
+    requirements: ["NAME — your full legal name", "DATE — the completion date", "Course title — Concussion in Sports"],
+    requirementsCallout: () => (
+      <>The certificate page from NFHS includes all three. <strong>A receipt of registration is not enough</strong> — we need the actual certificate showing you completed the course.</>
+    ),
+    uploadLabel: "Concussion Certificate (image or PDF)",
+    submitLabel: "Upload Concussion Certification",
+    successLabel: "Concussion Certification Uploaded",
+  },
+  heat: {
+    title: "Heat Illness Certification",
+    eyebrow: "STAFF RESOURCES · CERTIFICATION",
+    leadCopy: "Annual NFHS Heat Illness Prevention certification. Free online course, takes about 30 minutes.",
+    category: "Heat Illness Certification",
+    provider: {
+      url: "https://nfhslearn.com/courses/heat-illness-prevention-2",
+      label: "Open NFHS Heat Illness Course →",
+      step1: () => (
+        <>
+          <p style={styles.payrollText}>
+            Take the <strong>"Heat Illness Prevention"</strong> course on the NFHS Learning Center. The course is free, takes about 30 minutes, and ends with a certificate of completion.
+          </p>
+          <p style={styles.payrollText}>
+            When the certificate appears, <strong>save it as a PDF</strong> or take a screenshot. You'll upload it in Step 3.
+          </p>
+        </>
+      ),
+    },
+    requirements: ["NAME — your full legal name", "DATE — the completion date", "Course title — Heat Illness Prevention"],
+    requirementsCallout: () => (
+      <>The certificate page from NFHS includes all three. <strong>A receipt of registration is not enough</strong> — we need the actual certificate showing you completed the course.</>
+    ),
+    uploadLabel: "Heat Illness Certificate (image or PDF)",
+    submitLabel: "Upload Heat Illness Certification",
+    successLabel: "Heat Illness Certification Uploaded",
+  },
+};
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -784,7 +872,9 @@ function fileToBase64(file) {
   });
 }
 
-function BackgroundCheckPage() {
+// ── Page: Generic Upload (used for background check + certs) ──
+function UploadPage({ typeId, backHref, backLabel }) {
+  const t = UPLOAD_TYPES[typeId];
   const [coachName, setCoachName] = useState("");
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -799,7 +889,7 @@ function BackgroundCheckPage() {
     try {
       const fileData = await fileToBase64(file);
       const payload = {
-        category: "Background Check",
+        category: t.category,
         coachName: coachName.trim(),
         fileName: file.name,
         mimeType: file.type || "application/octet-stream",
@@ -823,10 +913,10 @@ function BackgroundCheckPage() {
   if (submitted) {
     return (
       <>
-        <button style={styles.backLink} onClick={() => navigate("/")}>← Coaches Portal</button>
+        <button style={styles.backLink} onClick={() => navigate(backHref || "/")}>← {backLabel || "Coaches Portal"}</button>
         <div style={styles.successBox}>
           <div style={styles.successIcon}>✓</div>
-          <div style={styles.successTitle}>Background Check Uploaded</div>
+          <div style={styles.successTitle}>{t.successLabel}</div>
           {submitError && (
             <p style={{ color: colors.warning, fontSize: 13, marginBottom: 12 }}>{submitError}</p>
           )}
@@ -840,33 +930,26 @@ function BackgroundCheckPage() {
 
   return (
     <>
-      <button style={styles.backLink} onClick={() => navigate("/")}>← Coaches Portal</button>
+      <button style={styles.backLink} onClick={() => navigate(backHref || "/")}>← {backLabel || "Coaches Portal"}</button>
 
       <div style={styles.heroSection}>
         <div style={styles.heroOverlay}>
-          <div style={styles.heroEyebrow}>STAFF RESOURCES</div>
-          <div style={styles.heroTagline}>Background Checks</div>
-          <div style={styles.heroLead}>
-            Required annually per A3 policy and the municipalities A3 works with.
-          </div>
+          <div style={styles.heroEyebrow}>{t.eyebrow}</div>
+          <div style={styles.heroTagline}>{t.title}</div>
+          <div style={styles.heroLead}>{t.leadCopy}</div>
         </div>
       </div>
 
-      <div style={styles.sectionLabel}>Step 1 · Take the Background Check</div>
+      <div style={styles.sectionLabel}>Step 1 · Complete the Course</div>
       <div style={styles.payrollCard}>
-        <p style={styles.payrollText}>
-          A3 uses the Florida Department of Law Enforcement (FDLE) for annual background checks. On the FDLE site, please select <strong>Instant Search</strong>. The cost is usually around <strong>$24</strong>.
-        </p>
-        <p style={styles.payrollText}>
-          When you reach the result page, <strong>do not close it</strong> — you'll need to capture it for upload in Step 3.
-        </p>
+        {t.provider.step1()}
         <a
-          href={BACKGROUND_CHECK_PROVIDER_URL}
+          href={t.provider.url}
           target="_blank"
           rel="noopener noreferrer"
           style={styles.providerBtn}
         >
-          Open FDLE Background Check →
+          {t.provider.label}
         </a>
       </div>
 
@@ -874,16 +957,12 @@ function BackgroundCheckPage() {
       <div style={{ ...styles.payrollCard, borderLeft: `3px solid ${colors.danger}` }}>
         <div style={styles.criticalLabel}>Important · What we need to see</div>
         <p style={styles.payrollText}>
-          Take a screenshot or save a PDF of the <strong>result page</strong> from the provider. The image must clearly show all three of:
+          Take a screenshot or save a PDF of the result page. It must clearly show all of:
         </p>
         <ul style={styles.bulletList}>
-          <li><strong>RESULT</strong> — Passed or Failed</li>
-          <li><strong>NAME</strong> — your full legal name</li>
-          <li><strong>DATE</strong> — the date the result was issued</li>
+          {t.requirements.map((r, i) => <li key={i}><strong>{r.split(" — ")[0]}</strong> — {r.split(" — ")[1]}</li>)}
         </ul>
-        <div style={styles.dangerCallout}>
-          <strong>A receipt of payment is not enough.</strong> A3 needs to see the actual result with your name and the date clearly visible — not just proof that you paid for the check.
-        </div>
+        <div style={styles.dangerCallout}>{t.requirementsCallout()}</div>
       </div>
 
       <div style={styles.sectionLabel}>Step 3 · Upload</div>
@@ -898,9 +977,12 @@ function BackgroundCheckPage() {
             placeholder="First Last (matches your existing folder if you have one)"
             required
           />
+          <div style={{ ...styles.fileSelected, color: colors.textMuted, fontStyle: "italic", marginTop: 6 }}>
+            The system will fuzzy-match your name to existing folders to prevent typos creating duplicate folders.
+          </div>
         </div>
         <div style={styles.fieldGroup}>
-          <label style={styles.label}>Background Check Result (image or PDF) <span style={styles.req}>*</span></label>
+          <label style={styles.label}>{t.uploadLabel} <span style={styles.req}>*</span></label>
           <input
             style={styles.fileInput}
             type="file"
@@ -922,8 +1004,62 @@ function BackgroundCheckPage() {
           disabled={!isValid || uploading}
           onClick={handleSubmit}
         >
-          {uploading ? "Uploading..." : "Upload Background Check"}
+          {uploading ? "Uploading..." : t.submitLabel}
         </button>
+      </div>
+    </>
+  );
+}
+
+// ── Page: Certifications Index ──
+const CERTIFICATIONS = [
+  {
+    id: "concussion",
+    title: "Concussion Certification",
+    description: "NFHS Concussion in Sports — free online course, ~30 minutes. Required annually.",
+    href: "/certifications/concussion",
+  },
+  {
+    id: "heat",
+    title: "Heat Illness Certification",
+    description: "NFHS Heat Illness Prevention — free online course, ~30 minutes. Required annually.",
+    href: "/certifications/heat",
+  },
+];
+
+function CertificationsIndex() {
+  return (
+    <>
+      <button style={styles.backLink} onClick={() => navigate("/")}>← Coaches Portal</button>
+
+      <div style={styles.heroSection}>
+        <div style={styles.heroOverlay}>
+          <div style={styles.heroEyebrow}>STAFF RESOURCES</div>
+          <div style={styles.heroTagline}>Certifications</div>
+          <div style={styles.heroLead}>
+            Annual certifications required for A3 coaches. Take each course, then upload your certificate here.
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.sectionLabel}>Available Certifications</div>
+      <div style={styles.portalGrid}>
+        {CERTIFICATIONS.map((c) => (
+          <div
+            key={c.id}
+            style={{ ...styles.portalCard, ...styles.portalCardActive }}
+            onClick={() => navigate(c.href)}
+            role="button"
+            tabIndex={0}
+          >
+            <div style={styles.portalCardHeader}>
+              <div style={styles.portalCardTitle}>{c.title}</div>
+              <span style={styles.portalBadgeActive}>OPEN</span>
+            </div>
+            <div style={styles.portalCardDescription}>{c.description}</div>
+            <div style={styles.portalCardCTA}>Open →</div>
+          </div>
+        ))}
       </div>
     </>
   );
@@ -941,7 +1077,13 @@ export default function App() {
   } else if (path === "/payroll" || path.startsWith("/payroll/")) {
     page = <PayrollPage />;
   } else if (path === "/background" || path.startsWith("/background/")) {
-    page = <BackgroundCheckPage />;
+    page = <UploadPage typeId="background-check" />;
+  } else if (path === "/certifications/concussion") {
+    page = <UploadPage typeId="concussion" backHref="/certifications" backLabel="Certifications" />;
+  } else if (path === "/certifications/heat") {
+    page = <UploadPage typeId="heat" backHref="/certifications" backLabel="Certifications" />;
+  } else if (path === "/certifications" || path.startsWith("/certifications/")) {
+    page = <CertificationsIndex />;
   } else {
     page = <HomePage />;
   }
