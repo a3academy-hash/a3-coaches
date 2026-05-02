@@ -1210,22 +1210,36 @@ const DISCLOSURE_QUESTIONS = [
   { id: "underInvestigation", label: "Are you currently under investigation for anything?" },
 ];
 
+const BP_RATINGS = [
+  { value: "1", label: "1 — Poor / can't throw" },
+  { value: "2", label: "2 — Below average" },
+  { value: "3", label: "3 — Average" },
+  { value: "4", label: "4 — Above average" },
+  { value: "5", label: "5 — Elite — I throw a ton of strikes, my arm feels great, and I can throw for a long time" },
+];
+
+const FUNGO_RATINGS = [
+  { value: "1", label: "1 — Poor / I can't hit fungos" },
+  { value: "2", label: "2 — Below average" },
+  { value: "3", label: "3 — Average" },
+  { value: "4", label: "4 — Above average" },
+  { value: "5", label: "5 — Elite — I can hit infield and outfield fungos with high accuracy" },
+];
+
+const COACHING_AREAS = ["Hitting", "Infield", "Outfield", "Pitching", "Catching", "Game Management"];
+
 function IntakePage() {
   const [form, setForm] = useState({
-    fullLegalName: "", dob: "", ssn: "",
+    fullLegalName: "", dob: "",
     dlNumber: "", dlState: "", dlFront: null, dlBack: null,
-    currentAddress: "", addressHistory: "",
-    bgCheckConsent: false,
-    mvrConsent: false, drivingHistory: "", drivingExplanation: "",
+    currentAddress: "",
+    drivingIssues: "", drivingExplanation: "",
     priorIssues: {}, priorIssuesExplanation: "",
-    refs: [
-      { type: "Former employer or supervisor", name: "", relationship: "", phone: "", email: "" },
-      { type: "Player or parent from past program", name: "", relationship: "", phone: "", email: "" },
-      { type: "Peer coach", name: "", relationship: "", phone: "", email: "" },
-    ],
     socialHandles: "", socialMediaConsent: false,
     sg_no1on1: false, sg_noClosedDoor: false, sg_noDiscipline: false, sg_mandatoryReporting: false,
     da_noDrugsAlcohol: false, da_noImpairment: false, da_subjectToRemoval: false,
+    bpRating: "", fungoRating: "",
+    strength1: "", strength2: "", strength3: "", weakest: "",
     medicalConditions: "",
     finalCertify: false, signature: "",
   });
@@ -1234,8 +1248,6 @@ function IntakePage() {
   const [submitError, setSubmitError] = useState("");
 
   const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
-  const setRef = (i, key) => (val) =>
-    setForm((f) => ({ ...f, refs: f.refs.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)) }));
   const setIssue = (id, val) =>
     setForm((f) => ({ ...f, priorIssues: { ...f.priorIssues, [id]: val } }));
 
@@ -1245,28 +1257,26 @@ function IntakePage() {
   const allDrugAlcohol = form.da_noDrugsAlcohol && form.da_noImpairment && form.da_subjectToRemoval;
   const allDisclosuresAnswered = DISCLOSURE_QUESTIONS.every((q) => form.priorIssues[q.id] === "yes" || form.priorIssues[q.id] === "no");
   const anyDisclosureYes = DISCLOSURE_QUESTIONS.some((q) => form.priorIssues[q.id] === "yes");
-  const drivingExplained = form.drivingHistory === "no" || (form.drivingHistory === "yes" && form.drivingExplanation.trim().length > 1);
+  const drivingExplained = form.drivingIssues === "no" || (form.drivingIssues === "yes" && form.drivingExplanation.trim().length > 1);
   const issuesExplained = !anyDisclosureYes || form.priorIssuesExplanation.trim().length > 1;
 
   const isValid =
     form.fullLegalName.trim().length > 1 &&
     form.dob &&
-    form.ssn.trim().length > 0 &&
     form.dlNumber.trim().length > 0 &&
     form.dlState &&
     form.dlFront &&
     form.dlBack &&
     form.currentAddress.trim().length > 5 &&
-    form.bgCheckConsent &&
-    form.mvrConsent &&
-    form.drivingHistory &&
+    form.drivingIssues &&
     drivingExplained &&
     allDisclosuresAnswered &&
     issuesExplained &&
-    form.refs.every((r) => r.name.trim() && r.phone.trim()) &&
     form.socialMediaConsent &&
     allSafeguarding &&
     allDrugAlcohol &&
+    form.bpRating && form.fungoRating &&
+    form.strength1 && form.strength2 && form.strength3 && form.weakest &&
     form.finalCertify &&
     form.signature.trim().length > 1;
 
@@ -1303,28 +1313,15 @@ function IntakePage() {
         signatureDate: dateLabel,
         fullLegalName: coachName,
         dob: form.dob,
-        ssn: form.ssn,
         driverLicenseNumber: form.dlNumber,
         driverLicenseState: form.dlState,
         currentAddress: form.currentAddress,
-        addressHistory3Years: form.addressHistory,
-        bgCheckConsent: form.bgCheckConsent ? "Yes" : "No",
-        mvrConsent: form.mvrConsent ? "Yes" : "No",
-        drivingViolations: form.drivingHistory,
+        drivingIssues: form.drivingIssues,
         drivingExplanation: form.drivingExplanation || "",
         ...Object.fromEntries(
           DISCLOSURE_QUESTIONS.map((q) => [`disclosure_${q.id}`, form.priorIssues[q.id] || ""])
         ),
         priorIssuesExplanation: form.priorIssuesExplanation || "",
-        ...Object.fromEntries(
-          form.refs.flatMap((r, i) => [
-            [`ref${i + 1}_type`, r.type],
-            [`ref${i + 1}_name`, r.name],
-            [`ref${i + 1}_relationship`, r.relationship],
-            [`ref${i + 1}_phone`, r.phone],
-            [`ref${i + 1}_email`, r.email],
-          ])
-        ),
         socialHandles: form.socialHandles,
         socialMediaConsent: form.socialMediaConsent ? "Yes" : "No",
         safeguarding_no1on1: form.sg_no1on1 ? "Yes" : "No",
@@ -1334,6 +1331,12 @@ function IntakePage() {
         drugAlcohol_noUseBeforeOrDuring: form.da_noDrugsAlcohol ? "Yes" : "No",
         drugAlcohol_noImpairment: form.da_noImpairment ? "Yes" : "No",
         drugAlcohol_subjectToRemoval: form.da_subjectToRemoval ? "Yes" : "No",
+        bp_rating: form.bpRating,
+        fungo_rating: form.fungoRating,
+        coaching_strength_1: form.strength1,
+        coaching_strength_2: form.strength2,
+        coaching_strength_3: form.strength3,
+        coaching_weakest: form.weakest,
         medicalConditions: form.medicalConditions || "",
         finalCertify: form.finalCertify ? "Yes" : "No",
         signature: form.signature.trim(),
@@ -1382,7 +1385,7 @@ function IntakePage() {
       </div>
 
       <div style={{ ...styles.dangerCallout, marginBottom: 24 }}>
-        <strong>Sensitive information:</strong> This form collects PII required for background checks (SSN, driver's license, address history). Submissions are reviewed by A3 leadership only.
+        <strong>Sensitive information:</strong> This form collects identity, driver's license, and disclosure information. Submissions are reviewed by A3 leadership only.
       </div>
 
       {/* 1. Identity */}
@@ -1395,11 +1398,6 @@ function IntakePage() {
         <div style={styles.fieldGroup}>
           <label style={styles.label}>Date of Birth <span style={styles.req}>*</span></label>
           <input style={styles.input} type="date" value={form.dob} onChange={(e) => set("dob")(e.target.value)} required />
-        </div>
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>Social Security Number <span style={styles.req}>*</span></label>
-          <input style={styles.input} type="text" value={form.ssn} onChange={(e) => set("ssn")(e.target.value)} placeholder="XXX-XX-XXXX" required />
-          <div style={styles.hint}>Used only for the background check. Stored in A3's compliance records.</div>
         </div>
         <div style={styles.fieldGroup}>
           <label style={styles.label}>Driver's License Number <span style={styles.req}>*</span></label>
@@ -1427,67 +1425,29 @@ function IntakePage() {
           <textarea style={{ ...styles.input, fontFamily: font, minHeight: 70 }} value={form.currentAddress} onChange={(e) => set("currentAddress")(e.target.value)} placeholder="Street, City, State, ZIP" required />
         </div>
         <div style={styles.fieldGroup}>
-          <label style={styles.label}>Address History (Past 3 Years)</label>
-          <textarea style={{ ...styles.input, fontFamily: font, minHeight: 80 }} value={form.addressHistory} onChange={(e) => set("addressHistory")(e.target.value)} placeholder="List previous addresses with approximate move dates" />
-        </div>
-      </div>
-
-      {/* 2. Background Check */}
-      <div style={styles.sectionLabel}>2 · Background Check Authorization</div>
-      <div style={styles.formCard}>
-        <p style={styles.payrollText}>
-          By checking the box below, you authorize A3 Academy to conduct the following checks. <strong>Non-negotiable for working with minors.</strong>
-        </p>
-        <ul style={styles.bulletList}>
-          <li>National criminal background check</li>
-          <li>County-level criminal search (last 7–10 years)</li>
-          <li>Sex offender registry check</li>
-          <li>SSN trace (confirms identity + address history)</li>
-        </ul>
-        <div style={styles.checkRow} onClick={() => set("bgCheckConsent")(!form.bgCheckConsent)}>
-          <div style={{ ...styles.checkbox, ...(form.bgCheckConsent ? styles.checkboxChecked : {}) }}>
-            {form.bgCheckConsent && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
-          </div>
-          <span style={styles.checkLabel}>I authorize A3 Academy to run the background checks listed above.</span>
-        </div>
-      </div>
-
-      {/* 3. Driving Record */}
-      <div style={styles.sectionLabel}>3 · Driving Record</div>
-      <div style={styles.formCard}>
-        <p style={styles.payrollText}>
-          You may be transporting players. We require Motor Vehicle Record (MVR) consent and disclosure of recent violations.
-        </p>
-        <div style={styles.checkRow} onClick={() => set("mvrConsent")(!form.mvrConsent)}>
-          <div style={{ ...styles.checkbox, ...(form.mvrConsent ? styles.checkboxChecked : {}) }}>
-            {form.mvrConsent && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
-          </div>
-          <span style={styles.checkLabel}>I consent to A3 obtaining my Motor Vehicle Record (MVR).</span>
-        </div>
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>DUIs, reckless driving, or suspensions in the last 5 years? <span style={styles.req}>*</span></label>
+          <label style={styles.label}>Do you have any DUIs, reckless driving charges, or multiple speeding tickets that would prevent you from safely transporting players in A3 vans? <span style={styles.req}>*</span></label>
           <div style={styles.radioRow}>
             {["no", "yes"].map((v) => (
               <button
                 key={v} type="button"
-                onClick={() => set("drivingHistory")(v)}
-                style={{ ...styles.radioBtn, ...(form.drivingHistory === v ? styles.radioBtnActive : {}) }}
+                onClick={() => set("drivingIssues")(v)}
+                style={{ ...styles.radioBtn, ...(form.drivingIssues === v ? styles.radioBtnActive : {}) }}
               >
                 {v === "no" ? "No" : "Yes"}
               </button>
             ))}
           </div>
+          {form.drivingIssues === "yes" && (
+            <div style={{ marginTop: 12 }}>
+              <label style={styles.label}>Please explain <span style={styles.req}>*</span></label>
+              <textarea style={{ ...styles.input, fontFamily: font, minHeight: 80 }} value={form.drivingExplanation} onChange={(e) => set("drivingExplanation")(e.target.value)} required />
+            </div>
+          )}
         </div>
-        {form.drivingHistory === "yes" && (
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Please explain <span style={styles.req}>*</span></label>
-            <textarea style={{ ...styles.input, fontFamily: font, minHeight: 80 }} value={form.drivingExplanation} onChange={(e) => set("drivingExplanation")(e.target.value)} required />
-          </div>
-        )}
       </div>
 
-      {/* 4. Prior Issues */}
-      <div style={styles.sectionLabel}>4 · Prior Issues / Disclosure</div>
+      {/* 2. Prior Issues */}
+      <div style={styles.sectionLabel}>2 · Prior Issues / Disclosure</div>
       <div style={styles.formCard}>
         <p style={styles.payrollText}>
           Honesty up front protects you and protects A3. Any "Yes" requires explanation below.
@@ -1516,39 +1476,8 @@ function IntakePage() {
         )}
       </div>
 
-      {/* 5. References */}
-      <div style={styles.sectionLabel}>5 · References</div>
-      <div style={styles.formCard}>
-        <p style={styles.payrollText}>
-          One reference per category. A3 will call at least one. Asked: "Would you trust this person alone with your child?" and "Any concerns I should know about?"
-        </p>
-        {form.refs.map((r, i) => (
-          <div key={i} style={{ marginBottom: 18, padding: "14px 16px", background: colors.input, borderRadius: 8, border: `1px solid ${colors.cardBorder}` }}>
-            <div style={{ ...styles.label, color: colors.accentSoft, marginBottom: 10, fontWeight: 800 }}>
-              Reference {i + 1} — {r.type}
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Name <span style={styles.req}>*</span></label>
-              <input style={styles.input} type="text" value={r.name} onChange={(e) => setRef(i, "name")(e.target.value)} required />
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Relationship</label>
-              <input style={styles.input} type="text" value={r.relationship} onChange={(e) => setRef(i, "relationship")(e.target.value)} placeholder="e.g., Head Coach at..." />
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Phone <span style={styles.req}>*</span></label>
-              <input style={styles.input} type="tel" value={r.phone} onChange={(e) => setRef(i, "phone")(e.target.value)} required />
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Email</label>
-              <input style={styles.input} type="email" value={r.email} onChange={(e) => setRef(i, "email")(e.target.value)} />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 6. Social Media */}
-      <div style={styles.sectionLabel}>6 · Social Media Review Disclosure</div>
+      {/* 3. Social Media */}
+      <div style={styles.sectionLabel}>3 · Social Media Review Disclosure</div>
       <div style={styles.formCard}>
         <p style={styles.payrollText}>
           A3 manually reviews coach social media for behavior, language, political/extreme content, and how you interact with kids and players. List every active handle.
@@ -1570,8 +1499,8 @@ function IntakePage() {
         </div>
       </div>
 
-      {/* 7. Safeguarding */}
-      <div style={styles.sectionLabel}>7 · Safeguarding / Minor Protection</div>
+      {/* 4. Safeguarding */}
+      <div style={styles.sectionLabel}>4 · Safeguarding / Minor Protection</div>
       <div style={styles.formCard}>
         {[
           { key: "sg_no1on1", label: "I will not engage in private 1-on-1 texting with players without a parent included." },
@@ -1588,8 +1517,8 @@ function IntakePage() {
         ))}
       </div>
 
-      {/* 8. Drug / Alcohol */}
-      <div style={styles.sectionLabel}>8 · Drug & Alcohol Policy</div>
+      {/* 5. Drug / Alcohol */}
+      <div style={styles.sectionLabel}>5 · Drug & Alcohol Policy</div>
       <div style={styles.formCard}>
         {[
           { key: "da_noDrugsAlcohol", label: "I will not use drugs or alcohol before or during coaching." },
@@ -1605,8 +1534,55 @@ function IntakePage() {
         ))}
       </div>
 
-      {/* 9. Medical */}
-      <div style={styles.sectionLabel}>9 · Medical / Physical Readiness</div>
+      {/* 6. Baseball Ability */}
+      <div style={styles.sectionLabel}>6 · Baseball Ability</div>
+      <div style={styles.formCard}>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Rate your BP (batting practice) ability <span style={styles.req}>*</span></label>
+          <select style={styles.input} value={form.bpRating} onChange={(e) => set("bpRating")(e.target.value)} required>
+            <option value="">Select...</option>
+            {BP_RATINGS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Rate your fungo ability <span style={styles.req}>*</span></label>
+          <select style={styles.input} value={form.fungoRating} onChange={(e) => set("fungoRating")(e.target.value)} required>
+            <option value="">Select...</option>
+            {FUNGO_RATINGS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Your strongest area as a coach <span style={styles.req}>*</span></label>
+          <select style={styles.input} value={form.strength1} onChange={(e) => set("strength1")(e.target.value)} required>
+            <option value="">Select...</option>
+            {COACHING_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Your 2nd strongest area <span style={styles.req}>*</span></label>
+          <select style={styles.input} value={form.strength2} onChange={(e) => set("strength2")(e.target.value)} required>
+            <option value="">Select...</option>
+            {COACHING_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Your 3rd strongest area <span style={styles.req}>*</span></label>
+          <select style={styles.input} value={form.strength3} onChange={(e) => set("strength3")(e.target.value)} required>
+            <option value="">Select...</option>
+            {COACHING_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Your weakest area on this list <span style={styles.req}>*</span></label>
+          <select style={styles.input} value={form.weakest} onChange={(e) => set("weakest")(e.target.value)} required>
+            <option value="">Select...</option>
+            {COACHING_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* 7. Medical */}
+      <div style={styles.sectionLabel}>7 · Medical / Physical Readiness</div>
       <div style={styles.formCard}>
         <div style={styles.fieldGroup}>
           <label style={styles.label}>Any conditions that limit standing long hours, throwing BP, or sustained physical activity?</label>
@@ -1614,8 +1590,8 @@ function IntakePage() {
         </div>
       </div>
 
-      {/* 10. Final Certification */}
-      <div style={styles.sectionLabel}>10 · Final Certification</div>
+      {/* 8. Final Certification */}
+      <div style={styles.sectionLabel}>8 · Final Certification</div>
       <div style={styles.formCard}>
         <div style={styles.checkRow} onClick={() => set("finalCertify")(!form.finalCertify)}>
           <div style={{ ...styles.checkbox, ...(form.finalCertify ? styles.checkboxChecked : {}) }}>
