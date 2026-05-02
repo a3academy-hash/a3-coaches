@@ -3,6 +3,10 @@ import { useState, useEffect } from "react";
 // Deployed Apps Script Web App URL for the signatures sheet
 const SIGNATURES_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxrFBOzqIsYhMaxPorEcXvSkPZYnaUuvvHC7IFJIuIj-6MTgAJbpPqaOFGzQ6egv3mL0A/exec";
 
+// Background-check upload Apps Script + provider link (replace placeholders)
+const FILE_UPLOADS_APPS_SCRIPT_URL = "REPLACE_ME_FILE_UPLOADS_APPS_SCRIPT_URL";
+const BACKGROUND_CHECK_PROVIDER_URL = "REPLACE_ME_BACKGROUND_CHECK_PROVIDER_URL";
+
 // ── URL routing (no router lib) ──
 function useUrlPath() {
   const [path, setPath] = useState(window.location.pathname);
@@ -36,8 +40,9 @@ const PORTAL_SECTIONS = [
   {
     id: "background",
     title: "Background Checks",
-    description: "Submit and renew your background check on file with A3 Academy.",
-    status: "coming-soon",
+    description: "Take your annual background check and upload the result page (Passed/Failed + Name + Date).",
+    href: "/background",
+    status: "active",
   },
   {
     id: "certifications",
@@ -715,10 +720,10 @@ function PayrollPage() {
           A3 Academy provides <strong>lodging</strong> for coaches on all road trips that require an overnight stay. Coaches do not pay for hotel rooms out of pocket.
         </p>
         <p style={styles.payrollText}>
-          For transportation, A3 typically provides <strong>charter bus service</strong> to and from road trip destinations. Coaches are expected to travel with the team on the provided transportation.
+          For transportation, A3 typically provides <strong>charter bus service</strong> to and from road trip destinations. Coaches are expected to travel with the team on the provided transportation. In other instances, coaches may be asked to drive A3 vans and will be compensated for that role.
         </p>
         <div style={styles.payrollCallout}>
-          <strong>Personal vehicles:</strong> If a coach chooses to drive personally instead of using the charter bus, their fuel and travel costs are <strong>not reimbursable</strong> — by opting out of the provided transportation, the coach assumes full responsibility for their own travel expenses. Mileage and fuel are only reimbursable when A3 is not providing team transportation for that trip.
+          <strong>Personal vehicles:</strong> If a coach chooses to drive personally instead of using the provided team transportation, their fuel and travel costs are <strong>not reimbursable</strong> — by opting out, the coach assumes full responsibility for their own travel expenses. Mileage and fuel are only reimbursable when A3 is not providing team transportation for that trip.
         </div>
       </div>
 
@@ -765,6 +770,162 @@ function PayrollPage() {
   );
 }
 
+// ── Page: Background Checks ──
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      const idx = result.indexOf(",");
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function BackgroundCheckPage() {
+  const [coachName, setCoachName] = useState("");
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  const isValid = coachName.trim().length > 1 && file;
+
+  const handleSubmit = async () => {
+    setUploading(true);
+    setSubmitError("");
+    try {
+      const fileData = await fileToBase64(file);
+      const payload = {
+        category: "Background Check",
+        coachName: coachName.trim(),
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        fileData,
+      };
+      await fetch(FILE_UPLOADS_APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setSubmitError("Upload failed. Please try again or contact A3.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <>
+        <button style={styles.backLink} onClick={() => navigate("/")}>← Coaches Portal</button>
+        <div style={styles.successBox}>
+          <div style={styles.successIcon}>✓</div>
+          <div style={styles.successTitle}>Background Check Uploaded</div>
+          {submitError && (
+            <p style={{ color: colors.warning, fontSize: 13, marginBottom: 12 }}>{submitError}</p>
+          )}
+          <p style={styles.successText}>
+            Thanks, {coachName.split(" ")[0]}. Your file is on record in your {new Date().getFullYear()} folder. A3 leadership will review it.
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button style={styles.backLink} onClick={() => navigate("/")}>← Coaches Portal</button>
+
+      <div style={styles.heroSection}>
+        <div style={styles.heroOverlay}>
+          <div style={styles.heroEyebrow}>STAFF RESOURCES</div>
+          <div style={styles.heroTagline}>Background Checks</div>
+          <div style={styles.heroLead}>
+            Required annually per A3 policy and the municipalities A3 works with.
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.sectionLabel}>Step 1 · Take the Background Check</div>
+      <div style={styles.payrollCard}>
+        <p style={styles.payrollText}>
+          Complete your annual background check through A3's approved provider. When you reach the result page, <strong>do not close it</strong> — you'll need to capture it for upload in Step 3.
+        </p>
+        <a
+          href={BACKGROUND_CHECK_PROVIDER_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={styles.providerBtn}
+        >
+          Open Background Check Provider →
+        </a>
+      </div>
+
+      <div style={styles.sectionLabel}>Step 2 · Capture the Result</div>
+      <div style={{ ...styles.payrollCard, borderLeft: `3px solid ${colors.danger}` }}>
+        <div style={styles.criticalLabel}>Important · What we need to see</div>
+        <p style={styles.payrollText}>
+          Take a screenshot or save a PDF of the <strong>result page</strong> from the provider. The image must clearly show all three of:
+        </p>
+        <ul style={styles.bulletList}>
+          <li><strong>RESULT</strong> — Passed or Failed</li>
+          <li><strong>NAME</strong> — your full legal name</li>
+          <li><strong>DATE</strong> — the date the result was issued</li>
+        </ul>
+        <div style={styles.dangerCallout}>
+          <strong>A receipt of payment is not enough.</strong> A3 needs to see the actual result with your name and the date clearly visible — not just proof that you paid for the check.
+        </div>
+      </div>
+
+      <div style={styles.sectionLabel}>Step 3 · Upload</div>
+      <div style={styles.formCard}>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Full Name <span style={styles.req}>*</span></label>
+          <input
+            style={styles.input}
+            type="text"
+            value={coachName}
+            onChange={(e) => setCoachName(e.target.value)}
+            placeholder="First Last (matches your existing folder if you have one)"
+            required
+          />
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Background Check Result (image or PDF) <span style={styles.req}>*</span></label>
+          <input
+            style={styles.fileInput}
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={(e) => setFile(e.target.files[0] || null)}
+            required
+          />
+          {file && (
+            <div style={styles.fileSelected}>
+              Selected: {file.name} ({Math.round(file.size / 1024)} KB)
+            </div>
+          )}
+        </div>
+        {submitError && (
+          <div style={{ color: colors.danger, fontSize: 13, marginBottom: 12 }}>{submitError}</div>
+        )}
+        <button
+          style={{ ...styles.primaryBtn, ...(isValid && !uploading ? {} : styles.btnDisabled) }}
+          disabled={!isValid || uploading}
+          onClick={handleSubmit}
+        >
+          {uploading ? "Uploading..." : "Upload Background Check"}
+        </button>
+      </div>
+    </>
+  );
+}
+
 // ── App ──
 export default function App() {
   const path = useUrlPath();
@@ -776,6 +937,8 @@ export default function App() {
     page = <RulesPage />;
   } else if (path === "/payroll" || path.startsWith("/payroll/")) {
     page = <PayrollPage />;
+  } else if (path === "/background" || path.startsWith("/background/")) {
+    page = <BackgroundCheckPage />;
   } else {
     page = <HomePage />;
   }
@@ -1490,5 +1653,65 @@ const styles = {
     fontSize: 13.5,
     color: colors.text,
     lineHeight: 1.6,
+  },
+
+  // Background check page
+  providerBtn: {
+    display: "inline-block",
+    padding: "12px 22px",
+    fontSize: 15,
+    fontWeight: 700,
+    fontFamily: font,
+    background: `linear-gradient(135deg, ${colors.accent}, #1a4d9e)`,
+    color: "#fff",
+    border: "none",
+    borderRadius: 10,
+    textDecoration: "none",
+    cursor: "pointer",
+    marginTop: 4,
+  },
+  criticalLabel: {
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    color: colors.danger,
+    marginBottom: 10,
+  },
+  bulletList: {
+    paddingLeft: 22,
+    marginBottom: 14,
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 1.8,
+  },
+  dangerCallout: {
+    background: "rgba(210, 74, 74, 0.12)",
+    border: `1px solid ${colors.danger}55`,
+    borderRadius: 8,
+    padding: "12px 16px",
+    fontSize: 13.5,
+    color: colors.text,
+    lineHeight: 1.6,
+    marginTop: 6,
+  },
+  fileInput: {
+    width: "100%",
+    padding: "10px 14px",
+    fontSize: 14,
+    fontFamily: font,
+    background: colors.input,
+    border: `1px solid ${colors.cardBorderStrong}`,
+    borderRadius: 8,
+    color: colors.text,
+    outline: "none",
+    boxSizing: "border-box",
+    cursor: "pointer",
+  },
+  fileSelected: {
+    marginTop: 8,
+    fontSize: 12.5,
+    color: colors.accentSoft,
+    fontWeight: 600,
   },
 };
