@@ -7,6 +7,9 @@ const SIGNATURES_SHEETS_URL = "https://script.google.com/macros/s/AKfycbx-6mnpVl
 const FILE_UPLOADS_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOYruVCS82PsGz-wAimHe4-xV6D0z1_FTGOqS04LVF4NfB9HCgOOs2H8p77rJj31yj/exec";
 const BACKGROUND_CHECK_PROVIDER_URL = "https://www.fdle.state.fl.us/criminal-history-records/florida-checks";
 
+// Pre-employment intake form Apps Script (replace placeholder when deployed)
+const INTAKE_APPS_SCRIPT_URL = "REPLACE_ME_INTAKE_APPS_SCRIPT_URL";
+
 // ── URL routing (no router lib) ──
 function useUrlPath() {
   const [path, setPath] = useState(window.location.pathname);
@@ -72,6 +75,15 @@ const PORTAL_SECTIONS = [
     status: "active",
     fullWidth: true,
   },
+  {
+    id: "intake",
+    title: "Coach Pre-Employment Intake",
+    icon: "clipboard",
+    description: "One-time risk and compliance intake — identity, background check authorization, driving record, prior issues, references, safeguarding acknowledgements, and final certification.",
+    href: "/intake",
+    status: "active",
+    fullWidth: true,
+  },
 ];
 
 // ── Icons (inline SVG, currentColor stroke) ──
@@ -107,6 +119,14 @@ const ICONS = {
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="1" x2="12" y2="23" />
       <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  ),
+  clipboard: (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <line x1="9" y1="11" x2="15" y2="11" />
+      <line x1="9" y1="15" x2="13" y2="15" />
     </svg>
   ),
 };
@@ -207,6 +227,30 @@ const RULES = [
       { offense: "1st", action: "Verbal correction. Drink discarded." },
       { offense: "2nd", action: "Written warning in coach file." },
       { offense: "3rd", action: "Suspension or fine." },
+    ],
+  },
+  {
+    id: "player-meetings",
+    title: "Player Meetings",
+    summary: "Never meet a player alone. Always have a second coach present. Mandatory reporting if you see misconduct.",
+    policy:
+      "A coach should never meet with a player alone in an office or closed-off portion of the facility. With no witnesses, players often misinterpret, misunderstand, misremember, or accuse coaches of saying things they never said. Always have a second coach in any meeting with you, especially if that meeting has to do with something negative happening to the player. Positive meetings can also be great in the moment, but if the player ends up struggling they will say 'You promised me I would always be a starter on this team at our last meeting.' You always need a second coach for safety and witnesses. NO private 1-on-1 meetings. NO closed-door training. NO physical discipline or inappropriate contact. ALL COACHES HAVE A MANDATORY REPORTING OBLIGATION IF THEY SEE MISCONDUCT. YOU CANNOT HAVE ANOTHER COACH'S BACK — lack of reporting makes you complicit.",
+    consequences: [
+      { offense: "1st", action: "Immediate documented warning. Removal from active coaching duties pending review. If misconduct is suspected, leadership escalates immediately." },
+      { offense: "2nd", action: "Suspension or dismissal depending on the nature of the violation. Failure to report a witnessed incident is grounds for dismissal regardless of count." },
+      { offense: "3rd", action: "Dismissal from staff." },
+    ],
+  },
+  {
+    id: "social-media",
+    title: "Social Media Behavior & Presence",
+    summary: "Assume parents are always watching. Posts represent A3 — illegal activity, inflammatory content, or extreme political content jeopardize your standing.",
+    policy:
+      "Posts on social media are at your own risk and are always assumed to represent the coaching staff at A3 Academy. Pictures of illegal activities, inflammatory posts, extremely political or extreme content, and interactions with players and the baseball community are always reviewed. You must assume parents are always watching your posts and making decisions about whether they want their child to be around you.",
+    consequences: [
+      { offense: "1st", action: "Documented conversation. Post deletion required if specifically called out." },
+      { offense: "2nd", action: "Written warning + leadership meeting." },
+      { offense: "3rd", action: "Suspension or dismissal. Severity depends on content — illegal activity or content involving minors accelerates penalties." },
     ],
   },
   {
@@ -1152,6 +1196,461 @@ function CertificationsIndex() {
   );
 }
 
+// ── Page: Pre-Employment Intake ──
+const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
+
+const DISCLOSURE_QUESTIONS = [
+  { id: "arrested", label: "Have you ever been arrested?" },
+  { id: "chargedCrime", label: "Have you ever been charged with a crime?" },
+  { id: "convictedCrime", label: "Have you ever been convicted of a crime?" },
+  { id: "minorMisconduct", label: "Have you ever been accused of misconduct involving a minor?" },
+  { id: "firedCoachingJob", label: "Have you ever been fired from a coaching job?" },
+  { id: "askedToResign", label: "Have you ever been asked to resign?" },
+  { id: "suspendedFromTeam", label: "Have you ever been suspended from a team or organization?" },
+  { id: "underInvestigation", label: "Are you currently under investigation for anything?" },
+];
+
+function IntakePage() {
+  const [form, setForm] = useState({
+    fullLegalName: "", dob: "", ssn: "",
+    dlNumber: "", dlState: "", dlFront: null, dlBack: null,
+    currentAddress: "", addressHistory: "",
+    bgCheckConsent: false,
+    mvrConsent: false, drivingHistory: "", drivingExplanation: "",
+    priorIssues: {}, priorIssuesExplanation: "",
+    refs: [
+      { type: "Former employer or supervisor", name: "", relationship: "", phone: "", email: "" },
+      { type: "Player or parent from past program", name: "", relationship: "", phone: "", email: "" },
+      { type: "Peer coach", name: "", relationship: "", phone: "", email: "" },
+    ],
+    socialHandles: "", socialMediaConsent: false,
+    sg_no1on1: false, sg_noClosedDoor: false, sg_noDiscipline: false, sg_mandatoryReporting: false,
+    da_noDrugsAlcohol: false, da_noImpairment: false, da_subjectToRemoval: false,
+    medicalConditions: "",
+    finalCertify: false, signature: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
+  const setRef = (i, key) => (val) =>
+    setForm((f) => ({ ...f, refs: f.refs.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)) }));
+  const setIssue = (id, val) =>
+    setForm((f) => ({ ...f, priorIssues: { ...f.priorIssues, [id]: val } }));
+
+  const dateLabel = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+  const allSafeguarding = form.sg_no1on1 && form.sg_noClosedDoor && form.sg_noDiscipline && form.sg_mandatoryReporting;
+  const allDrugAlcohol = form.da_noDrugsAlcohol && form.da_noImpairment && form.da_subjectToRemoval;
+  const allDisclosuresAnswered = DISCLOSURE_QUESTIONS.every((q) => form.priorIssues[q.id] === "yes" || form.priorIssues[q.id] === "no");
+  const anyDisclosureYes = DISCLOSURE_QUESTIONS.some((q) => form.priorIssues[q.id] === "yes");
+  const drivingExplained = form.drivingHistory === "no" || (form.drivingHistory === "yes" && form.drivingExplanation.trim().length > 1);
+  const issuesExplained = !anyDisclosureYes || form.priorIssuesExplanation.trim().length > 1;
+
+  const isValid =
+    form.fullLegalName.trim().length > 1 &&
+    form.dob &&
+    form.ssn.trim().length > 0 &&
+    form.dlNumber.trim().length > 0 &&
+    form.dlState &&
+    form.dlFront &&
+    form.dlBack &&
+    form.currentAddress.trim().length > 5 &&
+    form.bgCheckConsent &&
+    form.mvrConsent &&
+    form.drivingHistory &&
+    drivingExplained &&
+    allDisclosuresAnswered &&
+    issuesExplained &&
+    form.refs.every((r) => r.name.trim() && r.phone.trim()) &&
+    form.socialMediaConsent &&
+    allSafeguarding &&
+    allDrugAlcohol &&
+    form.finalCertify &&
+    form.signature.trim().length > 1;
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const coachName = form.fullLegalName.trim();
+      // Upload license front + back to file-upload script
+      const dlFrontData = await fileToBase64(form.dlFront);
+      await fetch(FILE_UPLOADS_APPS_SCRIPT_URL, {
+        method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: "Driver License - Front",
+          coachName, fileName: form.dlFront.name,
+          mimeType: form.dlFront.type || "application/octet-stream",
+          fileData: dlFrontData,
+        }),
+      });
+      const dlBackData = await fileToBase64(form.dlBack);
+      await fetch(FILE_UPLOADS_APPS_SCRIPT_URL, {
+        method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: "Driver License - Back",
+          coachName, fileName: form.dlBack.name,
+          mimeType: form.dlBack.type || "application/octet-stream",
+          fileData: dlBackData,
+        }),
+      });
+
+      // Flatten and submit text data to intake script
+      const payload = {
+        timestamp: new Date().toLocaleString(),
+        signatureDate: dateLabel,
+        fullLegalName: coachName,
+        dob: form.dob,
+        ssn: form.ssn,
+        driverLicenseNumber: form.dlNumber,
+        driverLicenseState: form.dlState,
+        currentAddress: form.currentAddress,
+        addressHistory3Years: form.addressHistory,
+        bgCheckConsent: form.bgCheckConsent ? "Yes" : "No",
+        mvrConsent: form.mvrConsent ? "Yes" : "No",
+        drivingViolations: form.drivingHistory,
+        drivingExplanation: form.drivingExplanation || "",
+        ...Object.fromEntries(
+          DISCLOSURE_QUESTIONS.map((q) => [`disclosure_${q.id}`, form.priorIssues[q.id] || ""])
+        ),
+        priorIssuesExplanation: form.priorIssuesExplanation || "",
+        ...Object.fromEntries(
+          form.refs.flatMap((r, i) => [
+            [`ref${i + 1}_type`, r.type],
+            [`ref${i + 1}_name`, r.name],
+            [`ref${i + 1}_relationship`, r.relationship],
+            [`ref${i + 1}_phone`, r.phone],
+            [`ref${i + 1}_email`, r.email],
+          ])
+        ),
+        socialHandles: form.socialHandles,
+        socialMediaConsent: form.socialMediaConsent ? "Yes" : "No",
+        safeguarding_no1on1: form.sg_no1on1 ? "Yes" : "No",
+        safeguarding_noClosedDoor: form.sg_noClosedDoor ? "Yes" : "No",
+        safeguarding_noDiscipline: form.sg_noDiscipline ? "Yes" : "No",
+        safeguarding_mandatoryReporting: form.sg_mandatoryReporting ? "Yes" : "No",
+        drugAlcohol_noUseBeforeOrDuring: form.da_noDrugsAlcohol ? "Yes" : "No",
+        drugAlcohol_noImpairment: form.da_noImpairment ? "Yes" : "No",
+        drugAlcohol_subjectToRemoval: form.da_subjectToRemoval ? "Yes" : "No",
+        medicalConditions: form.medicalConditions || "",
+        finalCertify: form.finalCertify ? "Yes" : "No",
+        signature: form.signature.trim(),
+      };
+      await fetch(INTAKE_APPS_SCRIPT_URL, {
+        method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Intake submit error:", err);
+      setSubmitError("Submission failed. Please try again or contact A3.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <>
+        <button style={styles.backLink} onClick={() => navigate("/")}>← Coaches Portal</button>
+        <div style={styles.successBox}>
+          <div style={styles.successIcon}>✓</div>
+          <div style={styles.successTitle}>Intake Submitted</div>
+          {submitError && <p style={{ color: colors.warning, fontSize: 13, marginBottom: 12 }}>{submitError}</p>}
+          <p style={styles.successText}>
+            Thanks, {form.fullLegalName.split(" ")[0]}. A3 leadership will review your intake and follow up. Your driver's license images are stored in your {new Date().getFullYear()} folder.
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button style={styles.backLink} onClick={() => navigate("/")}>← Coaches Portal</button>
+
+      <div style={styles.heroSection}>
+        <div style={styles.heroOverlay}>
+          <div style={styles.heroEyebrow}>ONE-TIME · NEW HIRE</div>
+          <div style={styles.heroTagline}>Coach Pre-Employment Intake</div>
+          <div style={styles.heroLead}>
+            Risk and compliance intake required before working with A3 athletes. All fields marked <span style={styles.req}>*</span> are required.
+          </div>
+        </div>
+      </div>
+
+      <div style={{ ...styles.dangerCallout, marginBottom: 24 }}>
+        <strong>Sensitive information:</strong> This form collects PII required for background checks (SSN, driver's license, address history). Submissions are reviewed by A3 leadership only.
+      </div>
+
+      {/* 1. Identity */}
+      <div style={styles.sectionLabel}>1 · Identity Verification</div>
+      <div style={styles.formCard}>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Full Legal Name <span style={styles.req}>*</span></label>
+          <input style={styles.input} type="text" value={form.fullLegalName} onChange={(e) => set("fullLegalName")(e.target.value)} placeholder="As shown on your ID" required />
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Date of Birth <span style={styles.req}>*</span></label>
+          <input style={styles.input} type="date" value={form.dob} onChange={(e) => set("dob")(e.target.value)} required />
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Social Security Number <span style={styles.req}>*</span></label>
+          <input style={styles.input} type="text" value={form.ssn} onChange={(e) => set("ssn")(e.target.value)} placeholder="XXX-XX-XXXX" required />
+          <div style={styles.hint}>Used only for the background check. Stored in A3's compliance records.</div>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Driver's License Number <span style={styles.req}>*</span></label>
+          <input style={styles.input} type="text" value={form.dlNumber} onChange={(e) => set("dlNumber")(e.target.value)} required />
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Issuing State <span style={styles.req}>*</span></label>
+          <select style={styles.input} value={form.dlState} onChange={(e) => set("dlState")(e.target.value)} required>
+            <option value="">Select...</option>
+            {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Driver's License — Front <span style={styles.req}>*</span></label>
+          <input style={styles.fileInput} type="file" accept="image/*,application/pdf" onChange={(e) => set("dlFront")(e.target.files[0] || null)} required />
+          {form.dlFront && <div style={styles.fileSelected}>Selected: {form.dlFront.name}</div>}
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Driver's License — Back <span style={styles.req}>*</span></label>
+          <input style={styles.fileInput} type="file" accept="image/*,application/pdf" onChange={(e) => set("dlBack")(e.target.files[0] || null)} required />
+          {form.dlBack && <div style={styles.fileSelected}>Selected: {form.dlBack.name}</div>}
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Current Address <span style={styles.req}>*</span></label>
+          <textarea style={{ ...styles.input, fontFamily: font, minHeight: 70 }} value={form.currentAddress} onChange={(e) => set("currentAddress")(e.target.value)} placeholder="Street, City, State, ZIP" required />
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Address History (Past 3 Years)</label>
+          <textarea style={{ ...styles.input, fontFamily: font, minHeight: 80 }} value={form.addressHistory} onChange={(e) => set("addressHistory")(e.target.value)} placeholder="List previous addresses with approximate move dates" />
+        </div>
+      </div>
+
+      {/* 2. Background Check */}
+      <div style={styles.sectionLabel}>2 · Background Check Authorization</div>
+      <div style={styles.formCard}>
+        <p style={styles.payrollText}>
+          By checking the box below, you authorize A3 Academy to conduct the following checks. <strong>Non-negotiable for working with minors.</strong>
+        </p>
+        <ul style={styles.bulletList}>
+          <li>National criminal background check</li>
+          <li>County-level criminal search (last 7–10 years)</li>
+          <li>Sex offender registry check</li>
+          <li>SSN trace (confirms identity + address history)</li>
+        </ul>
+        <div style={styles.checkRow} onClick={() => set("bgCheckConsent")(!form.bgCheckConsent)}>
+          <div style={{ ...styles.checkbox, ...(form.bgCheckConsent ? styles.checkboxChecked : {}) }}>
+            {form.bgCheckConsent && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
+          </div>
+          <span style={styles.checkLabel}>I authorize A3 Academy to run the background checks listed above.</span>
+        </div>
+      </div>
+
+      {/* 3. Driving Record */}
+      <div style={styles.sectionLabel}>3 · Driving Record</div>
+      <div style={styles.formCard}>
+        <p style={styles.payrollText}>
+          You may be transporting players. We require Motor Vehicle Record (MVR) consent and disclosure of recent violations.
+        </p>
+        <div style={styles.checkRow} onClick={() => set("mvrConsent")(!form.mvrConsent)}>
+          <div style={{ ...styles.checkbox, ...(form.mvrConsent ? styles.checkboxChecked : {}) }}>
+            {form.mvrConsent && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
+          </div>
+          <span style={styles.checkLabel}>I consent to A3 obtaining my Motor Vehicle Record (MVR).</span>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>DUIs, reckless driving, or suspensions in the last 5 years? <span style={styles.req}>*</span></label>
+          <div style={styles.radioRow}>
+            {["no", "yes"].map((v) => (
+              <button
+                key={v} type="button"
+                onClick={() => set("drivingHistory")(v)}
+                style={{ ...styles.radioBtn, ...(form.drivingHistory === v ? styles.radioBtnActive : {}) }}
+              >
+                {v === "no" ? "No" : "Yes"}
+              </button>
+            ))}
+          </div>
+        </div>
+        {form.drivingHistory === "yes" && (
+          <div style={styles.fieldGroup}>
+            <label style={styles.label}>Please explain <span style={styles.req}>*</span></label>
+            <textarea style={{ ...styles.input, fontFamily: font, minHeight: 80 }} value={form.drivingExplanation} onChange={(e) => set("drivingExplanation")(e.target.value)} required />
+          </div>
+        )}
+      </div>
+
+      {/* 4. Prior Issues */}
+      <div style={styles.sectionLabel}>4 · Prior Issues / Disclosure</div>
+      <div style={styles.formCard}>
+        <p style={styles.payrollText}>
+          Honesty up front protects you and protects A3. Any "Yes" requires explanation below.
+        </p>
+        {DISCLOSURE_QUESTIONS.map((q) => (
+          <div key={q.id} style={styles.fieldGroup}>
+            <label style={styles.label}>{q.label} <span style={styles.req}>*</span></label>
+            <div style={styles.radioRow}>
+              {["no", "yes"].map((v) => (
+                <button
+                  key={v} type="button"
+                  onClick={() => setIssue(q.id, v)}
+                  style={{ ...styles.radioBtn, ...(form.priorIssues[q.id] === v ? styles.radioBtnActive : {}) }}
+                >
+                  {v === "no" ? "No" : "Yes"}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        {anyDisclosureYes && (
+          <div style={styles.fieldGroup}>
+            <label style={styles.label}>Explanation for any "Yes" answers above <span style={styles.req}>*</span></label>
+            <textarea style={{ ...styles.input, fontFamily: font, minHeight: 100 }} value={form.priorIssuesExplanation} onChange={(e) => set("priorIssuesExplanation")(e.target.value)} required />
+          </div>
+        )}
+      </div>
+
+      {/* 5. References */}
+      <div style={styles.sectionLabel}>5 · References</div>
+      <div style={styles.formCard}>
+        <p style={styles.payrollText}>
+          One reference per category. A3 will call at least one. Asked: "Would you trust this person alone with your child?" and "Any concerns I should know about?"
+        </p>
+        {form.refs.map((r, i) => (
+          <div key={i} style={{ marginBottom: 18, padding: "14px 16px", background: colors.input, borderRadius: 8, border: `1px solid ${colors.cardBorder}` }}>
+            <div style={{ ...styles.label, color: colors.accentSoft, marginBottom: 10, fontWeight: 800 }}>
+              Reference {i + 1} — {r.type}
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Name <span style={styles.req}>*</span></label>
+              <input style={styles.input} type="text" value={r.name} onChange={(e) => setRef(i, "name")(e.target.value)} required />
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Relationship</label>
+              <input style={styles.input} type="text" value={r.relationship} onChange={(e) => setRef(i, "relationship")(e.target.value)} placeholder="e.g., Head Coach at..." />
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Phone <span style={styles.req}>*</span></label>
+              <input style={styles.input} type="tel" value={r.phone} onChange={(e) => setRef(i, "phone")(e.target.value)} required />
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Email</label>
+              <input style={styles.input} type="email" value={r.email} onChange={(e) => setRef(i, "email")(e.target.value)} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 6. Social Media */}
+      <div style={styles.sectionLabel}>6 · Social Media Review Disclosure</div>
+      <div style={styles.formCard}>
+        <p style={styles.payrollText}>
+          A3 manually reviews coach social media for behavior, language, political/extreme content, and how you interact with kids and players. List every active handle.
+        </p>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Social Media Handles</label>
+          <textarea
+            style={{ ...styles.input, fontFamily: font, minHeight: 90 }}
+            value={form.socialHandles}
+            onChange={(e) => set("socialHandles")(e.target.value)}
+            placeholder={"Instagram: @yourhandle\nX/Twitter: @yourhandle\nTikTok: @yourhandle\nFacebook: full name + URL\nLinkedIn: URL"}
+          />
+        </div>
+        <div style={styles.checkRow} onClick={() => set("socialMediaConsent")(!form.socialMediaConsent)}>
+          <div style={{ ...styles.checkbox, ...(form.socialMediaConsent ? styles.checkboxChecked : {}) }}>
+            {form.socialMediaConsent && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
+          </div>
+          <span style={styles.checkLabel}>I understand A3 Academy will review my public social media presence as part of this intake and on an ongoing basis.</span>
+        </div>
+      </div>
+
+      {/* 7. Safeguarding */}
+      <div style={styles.sectionLabel}>7 · Safeguarding / Minor Protection</div>
+      <div style={styles.formCard}>
+        {[
+          { key: "sg_no1on1", label: "I will not engage in private 1-on-1 texting with players without a parent included." },
+          { key: "sg_noClosedDoor", label: "I will not conduct closed-door or privately isolated training with a player." },
+          { key: "sg_noDiscipline", label: "I will not use physical discipline or any inappropriate contact with players." },
+          { key: "sg_mandatoryReporting", label: "I have a mandatory reporting obligation if I see misconduct, and I will report it to A3 leadership immediately." },
+        ].map(({ key, label }) => (
+          <div key={key} style={styles.checkRow} onClick={() => set(key)(!form[key])}>
+            <div style={{ ...styles.checkbox, ...(form[key] ? styles.checkboxChecked : {}) }}>
+              {form[key] && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
+            </div>
+            <span style={styles.checkLabel}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* 8. Drug / Alcohol */}
+      <div style={styles.sectionLabel}>8 · Drug & Alcohol Policy</div>
+      <div style={styles.formCard}>
+        {[
+          { key: "da_noDrugsAlcohol", label: "I will not use drugs or alcohol before or during coaching." },
+          { key: "da_noImpairment", label: "I will never be impaired while transporting players." },
+          { key: "da_subjectToRemoval", label: "I understand I am subject to removal from staff for violations of this policy." },
+        ].map(({ key, label }) => (
+          <div key={key} style={styles.checkRow} onClick={() => set(key)(!form[key])}>
+            <div style={{ ...styles.checkbox, ...(form[key] ? styles.checkboxChecked : {}) }}>
+              {form[key] && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
+            </div>
+            <span style={styles.checkLabel}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* 9. Medical */}
+      <div style={styles.sectionLabel}>9 · Medical / Physical Readiness</div>
+      <div style={styles.formCard}>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Any conditions that limit standing long hours, throwing BP, or sustained physical activity?</label>
+          <textarea style={{ ...styles.input, fontFamily: font, minHeight: 80 }} value={form.medicalConditions} onChange={(e) => set("medicalConditions")(e.target.value)} placeholder="Optional. Leave blank if none." />
+        </div>
+      </div>
+
+      {/* 10. Final Certification */}
+      <div style={styles.sectionLabel}>10 · Final Certification</div>
+      <div style={styles.formCard}>
+        <div style={styles.checkRow} onClick={() => set("finalCertify")(!form.finalCertify)}>
+          <div style={{ ...styles.checkbox, ...(form.finalCertify ? styles.checkboxChecked : {}) }}>
+            {form.finalCertify && <span style={{ color: "#fff", fontSize: 14, lineHeight: 1 }}>✓</span>}
+          </div>
+          <span style={styles.checkLabel}>I certify all information provided is true. I understand any false or omitted information may result in termination.</span>
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Typed Signature (Full Legal Name) <span style={styles.req}>*</span></label>
+          <input
+            style={{ ...styles.input, fontFamily: "'Brush Script MT', 'Lucida Handwriting', cursive", fontSize: 24, fontStyle: "italic", padding: "12px 14px" }}
+            type="text"
+            value={form.signature}
+            onChange={(e) => set("signature")(e.target.value)}
+            placeholder="Type your full legal name"
+            required
+          />
+        </div>
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Date</label>
+          <div style={styles.staticField}>{dateLabel}</div>
+        </div>
+        {submitError && <div style={{ color: colors.danger, fontSize: 13, marginBottom: 12 }}>{submitError}</div>}
+        <button
+          style={{ ...styles.primaryBtn, ...(isValid && !submitting ? {} : styles.btnDisabled) }}
+          disabled={!isValid || submitting}
+          onClick={handleSubmit}
+        >
+          {submitting ? "Submitting..." : "Submit Intake"}
+        </button>
+      </div>
+    </>
+  );
+}
+
 // ── App ──
 export default function App() {
   const path = useUrlPath();
@@ -1163,6 +1662,8 @@ export default function App() {
     page = <RulesPage />;
   } else if (path === "/payroll" || path.startsWith("/payroll/")) {
     page = <PayrollPage />;
+  } else if (path === "/intake" || path.startsWith("/intake/")) {
+    page = <IntakePage />;
   } else if (path === "/background" || path.startsWith("/background/")) {
     page = <UploadPage typeId="background-check" />;
   } else if (path === "/certifications/concussion") {
