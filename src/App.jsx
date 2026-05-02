@@ -32,8 +32,17 @@ function navigate(href) {
 }
 
 // ── Portal sections (home page) ──
-// Layout: rows 1 + 2 are 2-up; row 3 (payroll) spans full width via fullWidth flag.
+// Layout: row 1 = intake (full width), rows 2 + 3 are 2-up, row 4 (payroll) spans full width.
 const PORTAL_SECTIONS = [
+  {
+    id: "intake",
+    title: "Coach Pre-Employment Intake",
+    icon: "clipboard",
+    description: "One-time risk and compliance intake — identity, driving eligibility, prior issues, social media review, safeguarding acknowledgements, drug & alcohol policy, baseball ability, medical, and final certification.",
+    href: "/intake",
+    status: "active",
+    fullWidth: true,
+  },
   {
     id: "rules",
     title: "Conduct, Rules & Policies",
@@ -72,15 +81,6 @@ const PORTAL_SECTIONS = [
     icon: "dollar",
     description: "Independent contractor status, W-9, pay schedule, Zelle setup, reimbursements, travel, and the full missed-days + fines mechanics.",
     href: "/payroll",
-    status: "active",
-    fullWidth: true,
-  },
-  {
-    id: "intake",
-    title: "Coach Pre-Employment Intake",
-    icon: "clipboard",
-    description: "One-time risk and compliance intake — identity, background check authorization, driving record, prior issues, references, safeguarding acknowledgements, and final certification.",
-    href: "/intake",
     status: "active",
     fullWidth: true,
   },
