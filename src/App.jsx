@@ -911,6 +911,33 @@ const UPLOAD_TYPES = {
     submitLabel: "Upload Heat Illness Certification",
     successLabel: "Heat Illness Certification Uploaded",
   },
+  "cpr-first-aid": {
+    title: "CPR & First Aid Certification",
+    eyebrow: "STAFF RESOURCES · CERTIFICATION",
+    leadCopy: "Annual CPR and First Aid certification. Free online course with downloadable certificate.",
+    category: "CPR / First Aid Certification",
+    provider: {
+      url: "https://www.firstaidforfree.com/",
+      label: "Open First Aid for Free →",
+      step1: () => (
+        <>
+          <p style={styles.payrollText}>
+            Take a CPR and First Aid course on <strong>First Aid for Free</strong>. The site offers multiple free courses (Basic CPR, Pediatric First Aid, AED, etc.) — pick the one most appropriate for working with youth athletes.
+          </p>
+          <p style={styles.payrollText}>
+            When the certificate appears, <strong>save it as a PDF</strong> or take a screenshot. You'll upload it in Step 3.
+          </p>
+        </>
+      ),
+    },
+    requirements: ["NAME — your full legal name", "DATE — the completion date", "Course title — the specific CPR/First Aid course taken"],
+    requirementsCallout: () => (
+      <>The certificate page from First Aid for Free includes all three. <strong>A receipt of registration is not enough</strong> — we need the actual certificate showing you completed the course.</>
+    ),
+    uploadLabel: "CPR / First Aid Certificate (image or PDF)",
+    submitLabel: "Upload CPR & First Aid Certification",
+    successLabel: "CPR & First Aid Certification Uploaded",
+  },
 };
 
 function fileToBase64(file) {
@@ -1079,6 +1106,12 @@ const CERTIFICATIONS = [
     description: "NFHS Heat Illness Prevention — free online course, ~30 minutes. Required annually.",
     href: "/certifications/heat",
   },
+  {
+    id: "cpr-first-aid",
+    title: "CPR & First Aid Certification",
+    description: "First Aid for Free — free online CPR + First Aid course with a downloadable certificate. Required annually.",
+    href: "/certifications/cpr-first-aid",
+  },
 ];
 
 function CertificationsIndex() {
@@ -1136,6 +1169,8 @@ export default function App() {
     page = <UploadPage typeId="concussion" backHref="/certifications" backLabel="Certifications" />;
   } else if (path === "/certifications/heat") {
     page = <UploadPage typeId="heat" backHref="/certifications" backLabel="Certifications" />;
+  } else if (path === "/certifications/cpr-first-aid") {
+    page = <UploadPage typeId="cpr-first-aid" backHref="/certifications" backLabel="Certifications" />;
   } else if (path === "/certifications" || path.startsWith("/certifications/")) {
     page = <CertificationsIndex />;
   } else {
