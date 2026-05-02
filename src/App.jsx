@@ -7,8 +7,8 @@ const SIGNATURES_SHEETS_URL = "https://script.google.com/macros/s/AKfycbx-6mnpVl
 const FILE_UPLOADS_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOYruVCS82PsGz-wAimHe4-xV6D0z1_FTGOqS04LVF4NfB9HCgOOs2H8p77rJj31yj/exec";
 const BACKGROUND_CHECK_PROVIDER_URL = "https://www.fdle.state.fl.us/criminal-history-records/florida-checks";
 
-// Pre-employment intake form Apps Script (replace placeholder when deployed)
-const INTAKE_APPS_SCRIPT_URL = "REPLACE_ME_INTAKE_APPS_SCRIPT_URL";
+// Pre-employment intake form Apps Script (Coach Applications tab)
+const INTAKE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyknT98XcMGP2tFhka7g1YahVm_-q6LbROKPG1BA7b2CvnCixXCVrndeO31FSLh5FpFxQ/exec";
 
 // ── URL routing (no router lib) ──
 function useUrlPath() {
